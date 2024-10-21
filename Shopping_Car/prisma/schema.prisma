@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+
+model ShoppingCart {
+  id        Int               @id @default(autoincrement())
+  createdAt DateTime          @default(now())
+  items     ShoppingCartItem[]
+}
+
+model ShoppingCartItem {
+  id          Int      @id @default(autoincrement())
+  productId   Int      // Se mantiene el productId por referencia
+  productName String   // Se añade para almacenar el nombre del producto
+  productPrice Float   // Se añade para almacenar el precio del producto
+  quantity    Int      
+  cartId      Int
+  cart        ShoppingCart @relation(fields: [cartId], references: [id])
+}
+
+
+
