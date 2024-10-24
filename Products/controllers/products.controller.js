@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 const GetProductsByIds = async (req = request, res = response) => {
     const { productIds } = req.body;  
 
+    console.log("ProductsIds",req.body)
     try {
         const products = await prisma.products.findMany({
             where: {

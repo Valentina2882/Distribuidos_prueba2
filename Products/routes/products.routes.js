@@ -19,5 +19,4 @@ router.delete('/:id',DeleteProducts);
 router.put('/:id',EditProducts);
 router.get('/:id',ShowProduct);
 
-
 module.exports = router ;

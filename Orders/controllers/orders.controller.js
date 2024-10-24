@@ -12,6 +12,38 @@ const axios = require('axios');
 
 const prisma = new PrismaClient();
 
+
+const GetOrderWithPayment = async (req = request, res = response) => {
+    const { orderId } = req.body;  // ID de la orden a buscar
+
+    try {
+        // Obtener la orden desde la API de órdenes
+        const order = await prisma.orders.findUnique({
+            where: { id: orderId }
+        });
+
+        // Verificar si se encontró la orden
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Obtener el pago asociado a la orden desde la API de pagos
+        const paymentResponse = await axios.get(`http://localhost:3003/payments/${order.paymentId}`);
+        const payment = paymentResponse.data;
+
+        // Responder con la orden y el pago
+        res.json({
+            order,
+            payment // Esto incluye el pago asociado
+        });
+    } catch (error) {
+        console.error('Error fetching order with payment:', error.message);
+        res.status(500).json({ message: 'Failed to fetch order with payment' });
+    } finally {
+        await prisma.$disconnect();
+    }
+};
+
 // Función para obtener los productos basados en sus IDs desde el microservicio de productos
 const getProductsForOrder = async (productIds) => {
     try {
@@ -22,6 +54,33 @@ const getProductsForOrder = async (productIds) => {
     } catch (error) {
         console.error('Error fetching products:', error.response ? error.response.data : error.message);
         throw new Error('Failed to fetch products for the order');
+    }
+};
+
+const GetOrdersByIds = async (req = request, res = response) => {
+    const { orderIds } = req.body;  
+
+    try {
+        const orders = await prisma.orders.findMany({
+            where: {
+                id: { in: orderIds }  // Busca las órdenes cuyos IDs estén en el array `orderIds`
+            },
+            include: {
+                orderItems: true  // Incluye el array `orderItems` en la respuesta
+            }
+        });
+        res.json({
+            orders
+        });
+
+       
+
+
+    } catch (error) {
+        console.error('Error fetching orders:', error.message);
+        res.status(500).json({ message: 'Failed to fetch orders' });
+    } finally {
+        await prisma.$disconnect();
     }
 };
 
@@ -88,7 +147,9 @@ const AddOrders = async (req = request, res = response) => {
 
         // Paso 4: Actualizar la orden con el paymentId
         const updatedOrder = await prisma.orders.update({
-            where: { id: order.id },
+            where: {
+                id: { in: orderIds }  // Busca las órdenes cuyos IDs estén en el array `orderIds`
+            },
             data: {
                 paymentId: payment.payment.id,
                 status: 'paid'
@@ -138,10 +199,13 @@ const CancelOrder = async (req = request, res = response) => {
     }
 };
 
+
 module.exports = {
     ShowOrders,
     AddOrders,
     CancelOrder,
     processOrderPayment,
-    getProductsForOrder
+    getProductsForOrder,
+    GetOrdersByIds,
+    GetOrderWithPayment
 };

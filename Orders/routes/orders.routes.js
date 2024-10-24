@@ -9,10 +9,13 @@
 const{Router} = require('express');
 const router = Router();
 
-const {ShowOrders,AddOrders,CancelOrder} = require('../controllers/orders.controller')
+const {ShowOrders,AddOrders,CancelOrder,GetOrdersByIds,GetOrderWithPayment} = require('../controllers/orders.controller')
 
 router.get('/',ShowOrders);
 router.post('/',AddOrders);
-router.put('/cancel/:id',CancelOrder)
+router.put('/cancel/:id',CancelOrder);
+router.post('/:getorders', GetOrdersByIds);
+router.post('/order-with-payment', GetOrderWithPayment);
+
 
 module.exports = router;

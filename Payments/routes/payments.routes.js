@@ -9,10 +9,11 @@
 const{Router} = require('express');
 const router = Router();
 
-const {processPayment,showPayments} = require('../controllers/payments.controller')
+const {processPayment,showPayments,GetPaymentsByIds} = require('../controllers/payments.controller')
 
 router.get('/',showPayments);
 router.post('/process', processPayment);
+router.post('/:getpayments', GetPaymentsByIds);
 
 
 module.exports = router;

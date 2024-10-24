@@ -47,8 +47,29 @@ const showPayments = async (req = request, res = response) => {
         await prisma.$disconnect();
     }
 };
+const GetPaymentsByIds = async (req = request, res = response) => {
+    const { paymentIds } = req.body;  
+
+    try {
+        const payments = await prisma.payments.findMany({
+            where: {
+                id: { in: paymentIds }  // Busca los pagos cuyos IDs estén en el array `paymentIds`
+            }
+        });
+
+        res.json({
+            payments
+        });
+    } catch (error) {
+        console.error('Error fetching payments:', error.message);
+        res.status(500).json({ message: 'Failed to fetch payments' });
+    } finally {
+        await prisma.$disconnect();
+    }
+};
 
 module.exports = {
     processPayment,
-    showPayments
+    showPayments,
+    GetPaymentsByIds
 };

@@ -5,27 +5,12 @@
  * Controlador de carrito de compras
  * Este archivo define los controladores de shopping
  */
-
+7
 const { response, request } = require('express');
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
 
 const prisma = new PrismaClient();
-
-// Función para obtener los productos basados en sus IDs desde el microservicio de productos
-const getProductsByIds = async (productIds) => {
-    try {
-        const response = await axios.post('http://localhost:3002/products/getproducts', {
-            params: {
-                ids: productIds.join(',')
-            }
-        });
-        return response.data.products; 
-    } catch (error) {
-        console.error('Error fetching products:', error.response ? error.response.data : error.message);
-        throw new Error('Failed to fetch products');
-    }
-};
 
 // Función para calcular el total del carrito
 const calculateTotal = (products) => {
@@ -73,7 +58,7 @@ const AddProductsShopping = async (req = request, res = response) => {
         await prisma.$disconnect();
     }
 };
-// Obtener todos los elementos del carrito
+
 // Obtener todos los elementos del carrito
 const getCartItems = async (req = request, res = response) => {
     const { cartId } = req.params; // Asegúrate de que cartId sea pasado desde el cliente
@@ -103,14 +88,12 @@ const getCartItems = async (req = request, res = response) => {
     }
 };
 
-
-
 // Eliminar un producto del carrito
 const deleteProducto = async (req = request, res = response) => {
     const { id } = req.params;
 
     try {
-        const deletedItem = await prisma.shoppingCart.delete({
+        const deletedItem = await prisma.shoppingCartItem.delete({
             where: {
                 id: Number(id),
             },
@@ -167,12 +150,67 @@ const checkout = async (req = request, res = response) => {
 };
 
 
+const GetShoppingCart = async (req = request, res = response) => {
+    const { orderId } = req.body; // Asumiendo que solo pasas el orderId
+
+    try {
+        // Inicializar resultados vacíos
+        let order = null;
+        let payment = null;
+
+        // Obtener la orden usando el orderId
+        if (orderId) {
+            try {
+                const orderResponse = await axios.post('http://localhost:3000/orders/getorders', {
+                    params: { ids: [orderId] } // Pasamos el orderId como un array
+                });
+                console.log("Ordenes ", orderResponse.data)
+                order = orderResponse.data.orders[0]; // Suponiendo que solo hay una orden por ID
+            } catch (error) {
+                console.error('Error fetching order:', error.response ? error.response.data : error.message);
+                throw new Error('Failed to fetch order');
+            }
+        }
+
+        // Obtener el pago asociado a la orden
+        if (order && order.paymentId) {
+            try {
+                const paymentResponse = await axios.post('http://localhost:3001/payments/getpayments', {
+                    params: { ids: [order.paymentId] }
+                });
+                payment = paymentResponse.data.payments[0]; // Suponiendo que solo hay un pago por ID
+            } catch (error) {
+                console.error('Error fetching payment:', error.response ? error.response.data : error.message);
+                throw new Error('Failed to fetch payment');
+            }
+        }
+
+        // Responder con la información del carrito de compras
+        res.json({
+            order: {
+                id: order.id,
+                total: order.total,
+                status: order.status,
+                paymentId: order.paymentId,
+                orderItems: order.orderItems, // Incluye los items de la orden
+            },
+            payment, // Pago asociado a la orden
+        });
+    } catch (error) {
+        console.error('Error fetching data:', error.message);
+        res.status(500).json({ message: 'Failed to fetch data' });
+    } finally {
+        await prisma.$disconnect();
+    }
+};
+
+
 
 module.exports = {
     AddProductsShopping,
     deleteProducto,
     checkout,
-    getProductsByIds,
     calculateTotal,
-    getCartItems
+    getCartItems,
+    GetShoppingCart
 };
